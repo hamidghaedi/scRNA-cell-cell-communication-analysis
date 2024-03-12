@@ -20,41 +20,41 @@ urothelial tumors, six high-grade bladder urothelial tumors) along with
 
 ## Outlines:
 
-1.  **Part I: Data Input & Processing and Initialization of CellChat Object**: this includes load and preprocess single-cell RNA-seq data,
+1.  **Part I: Data input & processing and initialization of CellChat object**: this includes load and preprocess single-cell RNA-seq data,
     creating a CellChat object and set ligand-receptor interaction
     database and finally preprocess expression data for cell-cell
     communication analysis
 
-2.  **Part II: Inference of Cell-Cell Communication Network** : In this step we compute
+2.  **Part II: Inference of cell-cell communication network** : In this step we compute
     communication probabilities, filter out weak interactions, and will extract
     and visualize the inferred cellular communication network
 
-3.  **Part III: Visualization of Cell-Cell Communication Network**: 
-    This includes visualizing of communication at various levels (e.g., ligand-receptor
+<!--3.  **Part III: Visualization of cell-cell communication network**: 
+    This includes visualizing communication at various levels (e.g., ligand-receptor
     pairs, signaling pathways) and exploring communication patterns using
     different visualization techniques
 
-4.  **Part IV: Systems Analysis of Cell-Cell Communication Network** :
+4.  **Part IV: Systems analysis of cell-cell communication network** :
     In this, we will Compute network centrality scores, identify dominant senders and
     receivers, analyze signaling roles and contributions, and finally explore
     global communication patterns using manifold and classification
     learning
 
-5.  **Part V: Comparison Analysis of Multiple Datasets using CellChat** :
-    In this part, we Merge CellChat objects from different datasets, compare and
+5.  **Part V: Comparison analysis of multiple datasets using CellChat** :
+    In this part, we merge cellChat objects from different datasets, compare and
     visualize interactions, strengths, and major sources/targets, 
     predict general principles of cell-cell communication across
     datasets
 
-6.  **Part VI: Predict General Principles of Cell-Cell Communication**: In this part we will
+6.  **Part VI: Predict General principles of cell-cell communication**: In this part we will
     compare total interactions and interaction strength between datasets
     , visualize differential interactions and strengths among different
     cell population, identify specific signaling changes between cell
     types and conditions
 
-7.  **Part VII: Identify Conserved and Context-Specific Signaling Pathways**: In this step, we will compare the overall information flow of each signaling pathway, try to identify conserved and context-specific pathways, and finally Visualize pathway
+7.  **Part VII: Identify conserved and context-Specific signaling pathways**: In this step, we will compare the overall information flow of each signaling pathway, try to identify conserved and context-specific pathways, and finally Visualize pathway
     distances in joint manifold
-
+-->
 ## Part I: Data Input & Processing and Initialization of CellChat Object
 
 We have three groups of cells, present in the dataset, normal, non-muscle
