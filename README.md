@@ -26,22 +26,22 @@ urothelial tumors, six high-grade bladder urothelial tumors) along with
     communication analysis
 
 2.  **Part II: Inference of Cell-Cell Communication Network** : In this step we compute
-    communication probabilities, filter out weak interactions and will extract
+    communication probabilities, filter out weak interactions, and will extract
     and visualize the inferred cellular communication network
 
 3.  **Part III: Visualization of Cell-Cell Communication Network**: 
-    This include visualizing of communication at various levels (e.g., ligand-receptor
+    This includes visualizing of communication at various levels (e.g., ligand-receptor
     pairs, signaling pathways) and exploring communication patterns using
     different visualization techniques
 
 4.  **Part IV: Systems Analysis of Cell-Cell Communication Network** :
-    In this we will Compute network centrality scores, identify dominant senders and
-    receivers, analyze signaling roles and contributions and finally explore
+    In this, we will Compute network centrality scores, identify dominant senders and
+    receivers, analyze signaling roles and contributions, and finally explore
     global communication patterns using manifold and classification
     learning
 
 5.  **Part V: Comparison Analysis of Multiple Datasets using CellChat** :
-    In this part we Merge CellChat objects from different datasets, compare and
+    In this part, we Merge CellChat objects from different datasets, compare and
     visualize interactions, strengths, and major sources/targets, 
     predict general principles of cell-cell communication across
     datasets
@@ -52,17 +52,17 @@ urothelial tumors, six high-grade bladder urothelial tumors) along with
     cell population, identify specific signaling changes between cell
     types and conditions
 
-7.  **Part VII: Identify Conserved and Context-Specific Signaling Pathways**: In this step we will compare overall information flow of each signaling pathway, try to identify conserved and context-specific pathways and finally Visualize pathway
+7.  **Part VII: Identify Conserved and Context-Specific Signaling Pathways**: In this step, we will compare the overall information flow of each signaling pathway, try to identify conserved and context-specific pathways, and finally Visualize pathway
     distances in joint manifold
 
 ## Part I: Data Input & Processing and Initialization of CellChat Object
 
-We have three group of cells, present in the dataset, normal, non muscle
-invasive bladder cancer(NMIBC) and mucel invasive bladder cancer cells.
+We have three groups of cells, present in the dataset, normal, non-muscle
+invasive bladder cancer(NMIBC) and muscle-invasive bladder cancer cells.
 Each will be extracted from the harmonized Seurat object (prepared as
 outlined here) and they need to be converted to CellChat object
 
-``` r
+```r
 # Part I: Data input & processing and initialization of CellChat object-------------
 
 # Loading libraries---------------
@@ -80,7 +80,7 @@ showDatabaseCategory(CellChatDB)
 ```
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%">
 
-```
+```R
 ## Show the structure of the database
 dplyr::glimpse(CellChatDB$interaction)
 
