@@ -1,9 +1,3 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
-
 # scRNA cell-cell communication analysis
 
 To figure out how cells communicate all over the body, we need to
