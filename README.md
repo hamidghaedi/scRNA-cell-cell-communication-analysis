@@ -84,8 +84,7 @@ CellChatDB <- CellChatDB.human
 showDatabaseCategory(CellChatDB)
 
 ```
-#![image]("/images/CellChatDBCategories.png")
-<img src="https://github.com/hamidghaedi/sequencing_benchmark_datasets/blob/main/files/file_naming_convention.png" width="60%">
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="60%">
 ```
 ## Show the structure of the database
 dplyr::glimpse(CellChatDB$interaction)
@@ -288,11 +287,11 @@ for (i in 1:nrow(mat)) {
 ```
  For normal cells:
  
-<img src="https://github.com/hamidghaedi/sequencing_benchmark_datasets/blob/main/files/file_naming_convention.png" width="60%">
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/normal_interaction_count_strength.png" width="60%">
 
  For NMIBC cells:
-<img src="https://github.com/hamidghaedi/sequencing_benchmark_datasets/blob/main/files/file_naming_convention.png" width="60%">
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/nmibc_interaction_count_strength.png" width="60%">
 
 For MIBC cells
-<img src="https://github.com/hamidghaedi/sequencing_benchmark_datasets/blob/main/files/file_naming_convention.png" width="60%">
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/mibc_interaction_count_strength.png" width="60%">
 
