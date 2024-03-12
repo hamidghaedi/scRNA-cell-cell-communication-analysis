@@ -84,7 +84,8 @@ CellChatDB <- CellChatDB.human
 showDatabaseCategory(CellChatDB)
 
 ```
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="60%">
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%">
+
 ```
 ## Show the structure of the database
 dplyr::glimpse(CellChatDB$interaction)
@@ -290,8 +291,10 @@ for (i in 1:nrow(mat)) {
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/normal_interaction_count_strength.png" width="60%">
 
  For NMIBC cells:
+ 
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/nmibc_interaction_count_strength.png" width="60%">
 
-For MIBC cells
+For MIBC cells:
+
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/mibc_interaction_count_strength.png" width="60%">
 
