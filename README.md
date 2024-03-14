@@ -6,7 +6,7 @@ CellChatDB is an additional resource that complements CellChat. It's a curated d
 
 In this repo, I'll be using bladder cancer scRNA datasets that I have used for other repositories on scRNA data analysis. Briefly the dataset consisted of eight primary bladder tumor tissues (2 low-grade bladder urothelial tumors, six high-grade bladder urothelial tumors) along with 3 adjacent normal mucosae (PMID: 33033240)
 
-```{=html}
+
 <!--1.  **Part I: Data input & processing and initialization of CellChat object**: this includes load and preprocess single-cell RNA-seq data,
     creating a CellChat object and set ligand-receptor interaction
     database and finally preprocess expression data for cell-cell
@@ -42,10 +42,10 @@ In this repo, I'll be using bladder cancer scRNA datasets that I have used for o
 7.  **Part VII: Identify conserved and context-Specific signaling pathways**: In this step, we will compare the overall information flow of each signaling pathway, try to identify conserved and context-specific pathways, and finally Visualize pathway
     distances in joint manifold
 -->
-```
+
 ## Data Input & Processing, Initialization of CellChat Object and CCC analysis
 
-We have three groups of cells, present in the dataset, normal, non-muscle invasive bladder cancer(NMIBC) and muscle-invasive bladder cancer cells. Each will be extracted from the harmonized Seurat object (prepared as outlined here) and they need to be converted to CellChat object
+We have three groups of cells present in the dataset: normal, non-muscle invasive bladder cancer (NMIBC), and muscle-invasive (MIBC) bladder cancer cells. Each group will be extracted from the harmonized Seurat object (prepared as outlined here) and converted into a CellChat object. To prepare the Seurat object for CCC analysis, the cell types needed to be revised, and additional columns have been added to the metadata(see `./scripts/scRNA_dataset_processing_for_CCC.R` for more details)
 
 I wrote a function for cell-cell communication analysis (`cccAnalyzer()`) to streamline the analysis steps. This function performs cell-cell communication analysis using the CellChat tool on single-cell RNA-seq data stored in a Seurat object. Here's an overview of the arguments:
 
@@ -162,15 +162,23 @@ cccAnalyzer <- function(object, # Seurat object
   # Return the CellChat object
   return(cellchat)
 }
+```
 
+### CellChat interaction database
 
+Let see what type of interaction is included in CellChat tool.
 
+```r
 #Set the ligand-receptor interaction database----------------------
-CellChatDB <- CellChatDB.human 
-showDatabaseCategory(CellChatDB)
+png(filename = "./images/CellChatDBCategories.png.png", width = 16, height = 8.135, units = "in", res = 300)
+showDatabaseCategory(CellChatDB.human)
+dev.off()
 ```
 
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%"/>
+
+For human CellChatDB v2 contains ~3,300 validated molecular interactions, including ~40% of secrete autocrine/paracrine signaling interactions, ~17% of extracellular matrix (ECM)-receptor interactions, ~13% of cell-cell contact interactions and ~30% non-protein signaling(i.e., metabolic and synaptic signaling).
+
 
 ### CCC between cell types in normal, NMIBC and MIBC samples
 
@@ -178,12 +186,38 @@ The cell types are Epithelial cells, T-cells, Endothelial cells, i-CAF, Myeloid 
 
 ``` r
 ##Convert seurat to cell chat objec-----
-normal_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
+# # for normal samples we need to convert iCAF and myoCAF to fibroblast/ or progenitors 
+# nSeu <- subset(harmonized_seurat_13032024, subset=Invasiveness=="normal")
+# 
+# tmpMet <- nSeu@meta.data
+# tmpMet$clusters <- as.character(tmpMet$clusters)
+# # convert labeles
+# tmpMet$clusters <- ifelse(tmpMet$clusters == "i-CAF" & tmpMet$Invasiveness == "normal", "iCAF-progens",
+#                           ifelse(tmpMet$clusters == "Myo-CAF" & tmpMet$Invasiveness == "normal", "myoCAF-progens",
+#                                  as.character(tmpMet$clusters)))
+# # convert back to factor
+# tmpMet$clusters <- as.factor(tmpMet$clusters)
+# # put it back
+# nSeu@meta.data <- tmpMet
+# Idents(nSeu) <- nSeu$clusters
+# rm(tmpMet)
+
+
+normal_superCluster <- cccAnalyzer(object = nSeu,
                                    cellTypeColumn="clusters",
-                                   cellTypes=unique(harmonized_seurat_13032024$clusters),
+                                   cellTypes=unique(nSeu$clusters),
                                    groupColumn="Invasiveness",
                                    group="normal",
                                    saveAs = "normal_superClusters")
+                                   
+
+nmibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
+                                   cellTypeColumn="clusters",
+                                   cellTypes=unique(harmonized_seurat_13032024$clusters),
+                                   groupColumn="Invasiveness",
+                                   group="Noninvasive",
+                                   saveAs = "nmibc_superClusters")
+                                   
 # Subsetting Seurat object...
 # [1] "Create a CellChat object from a Seurat object"
 # The `meta.data` slot in the Seurat object is used as cell meta information 
@@ -205,14 +239,6 @@ normal_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
 # CellChat analysis of single cell RNA-seq data! 
 # CellChat object saved as normal_superClusters.rds 
 # Cell-cell communication analysis completed.
-
-
-nmibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
-                                   cellTypeColumn="clusters",
-                                   cellTypes=unique(harmonized_seurat_13032024$clusters),
-                                   groupColumn="Invasiveness",
-                                   group="Noninvasive",
-                                   saveAs = "nmibc_superClusters")
                                    
 mibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
                                    cellTypeColumn="clusters",
@@ -220,86 +246,157 @@ mibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
                                    groupColumn="Invasiveness",
                                    group="Invasive",
                                    saveAs = "mibc_superClusters")
+                                   
+# Subsetting Seurat object...
+# [1] "Create a CellChat object from a Seurat object"
+# The `meta.data` slot in the Seurat object is used as cell meta information 
+# Set cell identities for the new CellChat object 
+# The cell groups used for CellChat analysis are  Epithelial cells, T-cells, Endothelial cells, i-CAF, Myeloid cells, Myo-CAF, APCs, B-cells, Mast cells 
+# Identifying overexpressed genes and interactions...
+# The number of highly variable ligand-receptor pairs used for signaling inference is 1718 
+# An object of class CellChat created from a single dataset 
+#  23190 genes.
+#  36270 cells. 
+# CellChat analysis of single cell RNA-seq data! 
+# triMean is used for calculating the average gene expression per cell group. 
+# [1] ">>> Run CellChat on sc/snRNA-seq data <<< [2024-03-14 09:07:25.499606]"
+#   |================================================================================================================================| 100%
+# [1] ">>> CellChat inference is done. Parameter values are stored in `object@options$parameter` <<< [2024-03-14 09:24:56.80803]"
+# An object of class CellChat created from a single dataset 
+#  23190 genes.
+#  36270 cells. 
+# CellChat analysis of single cell RNA-seq data! 
+# CellChat object saved as mibc_superClusters.rds 
+# Cell-cell communication analysis completed.
 ```
 
-## Part II: Inference of Cell-Cell Communication Network
+## visualization of cell-cell communication
 
-Earlier, we saved a CellChat object for each group of cells. Now, we will use these objects to add more information, and subsequently, they will be saved with the same names. As we progress through our analysis, the CellChat objects will be updated iteratively. At the end of this part we visualize the number of interactions as well as the strength/weights of interactions for normal, NMIBC, and MIBC cells. Please note that each of the objects `normal_cellchat.rds`, `nmibc_cellChat.rds` and `mibc_cellChat.rds`, need to be read in R at a time using `cellchat <- readRDS("SAVED_CELLCHAT_OBJ")`.
+Earlier, we saved a CellChat object for each group of cells. Now, we will use these objects to visualize active signaling pathways in each group of samples. Let's take a look at aggregated number of signaling pathways and their relative weights for each cell type in different sample groups. 
 
 ``` r
-# Part II: Inference of cell-cell communication network-------------
+# Part II: visualization of cell-cell communication -------------
 
-# Compute the communication probability/strength between any interacting cell groups -----
-
-## Two options based on the methods for computing the average gene expression per cell group
-
-### 1) "triMean", producing fewer but stronger interactions
-#cellchat <- computeCommunProb(cellchat, 
-#                             population.size = TRUE, 
-#                              raw.use = FALSE,
-#                              type = "triMean") # defult.It approximates 25% truncated mean, implying that the average gene expression is zero if the percent of expressed cells in one group is less than 25%
-
-### 2) truncatedMean, producing more interactions. A value should be assigned to ’trim'
-# If the above returned not much data, run the following:
-cellchat <- computeCommunProb(cellchat, 
-                              population.size = TRUE, 
-                              raw.use = FALSE, 
-                              type = "truncatedMean",
-                              trim = 0.05) # 
-
-# Filter out the cell-cell communications ------------
-## if there are only few number of cells in certain cell groups
-cellchat <- filterCommunication(cellchat, min.cells = 10)
-# Extract the inferred cellular communication network as a data frame
-
-df.net <- subsetCommunication(cellchat) # returns a data frame consisting of all the inferred cell-cell communications at the level of ligands/receptors.
-
-df.net <- subsetCommunication(cellchat, slot.name = "netP") # to access the the inferred communications at the level of signaling pathways
-
-df.net <- subsetCommunication(cellchat, sources.use = c(1,2), targets.use = c(4,5)) # gives the inferred cell-cell communications sending from cell groups 1 and 2 to cell groups 4 and 5.
-
-df.net <- subsetCommunication(cellchat, signaling = c("WNT", "TGFb")) # gives the inferred cell-cell communications mediated by signaling WNT and TGFb.
-
-# Infer the cell-cell communication at a signaling pathway level
-
-cellchat <- computeCommunProbPathway(cellchat)
-
-# Calculate the aggregated cell-cell communication network-----
-
-#cellchat <- aggregateNet(cellchat,
-#                         sources.use = c("basal_cell", "cancer_associated_luminal_cell", "differentiated_luminal_cell", 
-#                                         "early_basal_cell", "immunomodulatory_luminal_cell","unique_luminal_cell"),
-#                         targets.use = c("B cells", "T-cells", "myeloid cells"))
-
-
-cellchat <- aggregateNet(cellchat)
+## Aggregated cell-cell communication network visualization-------------------
+normal_superCluster <- aggregateNet(normal_superCluster)
+nmibc_superCluster <- aggregateNet(nmibc_superCluster)
+mibc_superCluster <- aggregateNet(mibc_superCluster)
 
 # Visualization the number of interactions or the total interaction strength (weights)
-groupSize <- as.numeric(table(cellchat@idents))
-par(mfrow = c(1,2), xpd=TRUE)
+png(filename = "./images/int_nCount_Strength.png", width = 20, height = 13.135, units = "in", res = 300)
+par(mfrow = c(2,3), xpd=TRUE)
+netVisual_circle(normal_superCluster@net$count, vertex.weight = as.numeric(table(normal_superCluster@idents)), weight.scale = T, label.edge= F, title.name = "Benign\nnCount_interactions")
+netVisual_circle(nmibc_superCluster@net$count, vertex.weight = as.numeric(table(nmibc_superCluster@idents)), weight.scale = T, label.edge= F, title.name = "NMIBC\nnCount_interactions")
+netVisual_circle(mibc_superCluster@net$count, vertex.weight = as.numeric(table(mibc_superCluster@idents)), weight.scale = T, label.edge= F, title.name = "MIBC\nnCount_interactions")
+# Weights
+netVisual_circle(normal_superCluster@net$weight, vertex.weight = as.numeric(table(normal_superCluster@idents)), weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+netVisual_circle(nmibc_superCluster@net$weight, vertex.weight = as.numeric(table(nmibc_superCluster@idents)), weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+netVisual_circle(mibc_superCluster@net$weight, vertex.weight = as.numeric(table(mibc_superCluster@idents)), weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+dev.off()
 
-netVisual_circle(cellchat@net$count, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Number of interactions")
-netVisual_circle(cellchat@net$weight, vertex.weight = groupSize, weight.scale = T, label.edge= F, title.name = "Interaction weights/strength")
+```
 
 
-# This snipet generate subplots of the signaling sent from each cell group
-mat <- cellchat@net$weight
-par(mfrow = c(3,4), xpd=TRUE)
-for (i in 1:nrow(mat)) {
-  mat2 <- matrix(0, nrow = nrow(mat), ncol = ncol(mat), dimnames = dimnames(mat))
-  mat2[i, ] <- mat[i, ]
-  netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/int_nCount_Strength.png" width="60%"/>
+
+Based on the above figures, the CCC numbers between epithelial cells, fibroblasts, endothelial cells, and T-cells are significant. In terms of CCC weights/strength, autocrine signaling in endothelial cells and crosstalk between i-CAF and T-cells are noteworthy in benign bladder cells. In NMIBC, autocrine signaling in T-cells and endothelial cells, and crosstalk between these two, are noteworthy. In the case of MIBC, the most significant aspect is autocrine signaling in epithelial cells.
+
+Lets take a look at signaling sent out from these cells in more details:
+
+```R
+# Visualize outgoing signals from each cell type: COUNTS
+normMat_count <- normal_superCluster@net$count
+nmibcMat_count <- nmibc_superCluster@net$count
+mibcMat_count <- mibc_superCluster@net$count
+#
+# reorder normal matrix
+normMat_count <- normMat_count[c(4,9,3,5,7,8,1,2,6), c(c(4,9,3,5,7,8,1,2,6))]
+
+# select epi, t-cells, endothelials and fibroblasts
+normMat_count <- normMat_count[c(1,2,3,4,6), c(1,2,3,4,6)]
+nmibcMat_count <- nmibcMat_count[c(1,2,3,4,6), c(1,2,3,4,6)]
+mibcMat_count <- mibcMat_count[c(1,2,3,4,6), c(1,2,3,4,6)]
+
+
+
+# Visualize outgoing signals from each cell type" WEIGTHS
+normMat_weight <- normal_superCluster@net$weight
+nmibcMat_weight <- nmibc_superCluster@net$weight
+mibcMat_weight <- mibc_superCluster@net$weight
+#
+# reorder normal matrix
+normMat_weight <- normMat_weight[c(4,9,3,5,7,8,1,2,6), c(c(4,9,3,5,7,8,1,2,6))]
+
+# select epi, t-cells, endothelials and fibroblasts
+normMat_weight <- normMat_weight[c(1,2,3,4,6), c(1,2,3,4,6)]
+nmibcMat_weight <- nmibcMat_weight[c(1,2,3,4,6), c(1,2,3,4,6)]
+mibcMat_weight <- mibcMat_weight[c(1,2,3,4,6), c(1,2,3,4,6)]
+
+
+for (i in 1:nrow(normMat_count)) {
+  filename <- paste0("./images/", rownames(nmibcMat_weight)[i], "_sent_out_sigs.png")
+  
+  png(filename = filename, width = 15, height = 8, units = "in", res = 300)
+  par(mfrow = c(2, 3), xpd = TRUE)
+  # Extract data for normal, NMIBC, and MIBC
+  cmat_nor <- matrix(0, nrow = nrow(normMat_count), ncol = ncol(normMat_count), dimnames = dimnames(normMat_count))
+  cmat_nor[i, ] <- normMat_count[i, ]
+  
+  cmat_nmibc <- matrix(0, nrow = nrow(normMat_count), ncol = ncol(normMat_count), dimnames = dimnames(normMat_count))
+  cmat_nmibc[i, ] <- nmibcMat_count[i, ]
+  
+  cmat_mibc <- matrix(0, nrow = nrow(normMat_count), ncol = ncol(normMat_count), dimnames = dimnames(normMat_count))
+  cmat_mibc[i, ] <- mibcMat_count[i, ]
+  
+  wmat_nor <- matrix(0, nrow = nrow(normMat_weight), ncol = ncol(normMat_weight), dimnames = dimnames(normMat_weight))
+  wmat_nor[i, ] <- normMat_weight[i, ]
+  
+  wmat_nmibc <- matrix(0, nrow = nrow(normMat_weight), ncol = ncol(normMat_weight), dimnames = dimnames(normMat_weight))
+  wmat_nmibc[i, ] <- nmibcMat_weight[i, ]
+  
+  wmat_mibc <- matrix(0, nrow = nrow(normMat_weight), ncol = ncol(normMat_weight), dimnames = dimnames(normMat_weight))
+  wmat_mibc[i, ] <- mibcMat_weight[i, ]
+  
+  # Plotting
+  netVisual_circle(cmat_nor, vertex.weight = as.numeric(table(normal_superCluster@idents))[c(4, 9, 3, 5, 8)], 
+                   weight.scale = TRUE, edge.weight.max = max(normMat_count), title.name = paste0("Benign\n", rownames(normMat_count)[i], " nCount_interactions"))
+  
+  netVisual_circle(cmat_nmibc, vertex.weight = as.numeric(table(nmibc_superCluster@idents))[c(1, 2, 3, 4, 6)], 
+                   weight.scale = TRUE, edge.weight.max = max(nmibcMat_count), title.name = paste0("NMIBC\n", rownames(nmibcMat_count)[i], " nCount_interactions"))
+  
+  netVisual_circle(cmat_mibc, vertex.weight = as.numeric(table(mibc_superCluster@idents))[c(1, 2, 3, 4, 6)], 
+                   weight.scale = TRUE, edge.weight.max = max(mibcMat_count), title.name = paste0("MIBC\n", rownames(mibcMat_count)[i], " nCount_interactions"))
+  
+  netVisual_circle(wmat_nor, vertex.weight = as.numeric(table(normal_superCluster@idents))[c(4, 9, 3, 5, 8)], 
+                   weight.scale = TRUE, edge.weight.max = max(normMat_weight), title.name = "Benign Interaction weights/strength")
+  
+  netVisual_circle(wmat_nmibc, vertex.weight = as.numeric(table(nmibc_superCluster@idents))[c(1, 2, 3, 4, 6)], 
+                   weight.scale = TRUE, edge.weight.max = max(nmibcMat_weight), title.name = "NMIBC Interaction weights/strength")
+  
+  netVisual_circle(wmat_mibc, vertex.weight = as.numeric(table(mibc_superCluster@idents))[c(1, 2, 3, 4, 6)], 
+                   weight.scale = TRUE, edge.weight.max = max(mibcMat_weight), title.name = "MIBC Interaction weights/strength")
+  
+  dev.off()
 }
 ```
 
-For normal cells:
+**Epithelial cells**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/normal_interaction_count_strength.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Epithelialcells_sent_out_sigs.png" width="60%"/>
 
-For NMIBC cells:
+**T-cells**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/nmibc_interaction_count_strength.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/T-cells_sent_out_sigs.png" width="60%"/>
 
-For MIBC cells:
+**Endothelial cells**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/mibc_interaction_count_strength.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Endothelialcells_sent_out_sigs.png" width="60%"/>
+
+**Myo-CAF**
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Myo-CAF_sent_out_sigs.png" width="60%"/>
+
+**i-CAF**
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/i-CAF_sent_out_sigs.png" width="60%"/>
+
