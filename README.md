@@ -6,7 +6,7 @@ CellChatDB is an additional resource that complements CellChat. It's a curated d
 
 In this repo, I'll be using bladder cancer scRNA datasets that I have used for other repositories on scRNA data analysis. Briefly the dataset consisted of eight primary bladder tumor tissues (2 low-grade bladder urothelial tumors, six high-grade bladder urothelial tumors) along with 3 adjacent normal mucosae (PMID: 33033240)
 
-```{=html}
+
 <!--1.  **Part I: Data input & processing and initialization of CellChat object**: this includes load and preprocess single-cell RNA-seq data,
     creating a CellChat object and set ligand-receptor interaction
     database and finally preprocess expression data for cell-cell
@@ -42,7 +42,7 @@ In this repo, I'll be using bladder cancer scRNA datasets that I have used for o
 7.  **Part VII: Identify conserved and context-Specific signaling pathways**: In this step, we will compare the overall information flow of each signaling pathway, try to identify conserved and context-specific pathways, and finally Visualize pathway
     distances in joint manifold
 -->
-```
+
 ## Data Input & Processing, Initialization of CellChat Object and CCC analysis
 
 We have three groups of cells, present in the dataset, normal, non-muscle invasive bladder cancer(NMIBC) and muscle-invasive bladder cancer cells. Each will be extracted from the harmonized Seurat object (prepared as outlined here) and they need to be converted to CellChat object
@@ -162,15 +162,22 @@ cccAnalyzer <- function(object, # Seurat object
   # Return the CellChat object
   return(cellchat)
 }
+```
 
+### CellChat interaction database
 
+Let see what type of interaction is included in CellChat tool.
 
+```r
 #Set the ligand-receptor interaction database----------------------
 CellChatDB <- CellChatDB.human 
 showDatabaseCategory(CellChatDB)
 ```
 
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%"/>
+
+CellChatDB v2 contains ~3,300 validated molecular interactions, including ~40% of secrete autocrine/paracrine signaling interactions, ~17% of extracellular matrix (ECM)-receptor interactions, ~13% of cell-cell contact interactions and ~30% non-protein signaling(i.e., metabolic and synaptic signaling).
+
 
 ### CCC between cell types in normal, NMIBC and MIBC samples
 
