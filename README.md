@@ -1,26 +1,13 @@
-# scRNA cell-cell communication analysis
+# scRNA cell-cell communication (CCC) analysis
 
-To figure out how cells communicate all over the body, we need to
-accurately show the links between them and analyze those links on a big
-scale.To infer interactions between cells in a single-cell RNA dataset,
-CellChat comes in handy. It's an R package designed for analyzing and
-visualizing cell-cell communication. The goal is to make it easy for
-researchers to identify and understand these interactions through clear
-and visually appealing representations.
+To figure out how cells communicate all over the body, we need to accurately show the links between them and analyze those links on a big scale.To infer interactions between cells in a single-cell RNA dataset, CellChat comes in handy. It's an R package designed for analyzing and visualizing cell-cell communication. The goal is to make it easy for researchers to identify and understand these interactions through clear and visually appealing representations.
 
-CellChatDB is an additional resource that complements CellChat. It's a
-curated database that includes literature-supported information about
-ligand-receptor interactions in various species.
+CellChatDB is an additional resource that complements CellChat. It's a curated database that includes literature-supported information about ligand-receptor interactions in various species.
 
-In this repo, I'll be using bladder cancer scRNA datasets that I have
-used for other repositories on scRNA data analysis. Briefly the dataset
-consisted of eight primary bladder tumor tissues (2 low-grade bladder
-urothelial tumors, six high-grade bladder urothelial tumors) along with
-3 adjacent normal mucosae (PMID: 33033240)
+In this repo, I'll be using bladder cancer scRNA datasets that I have used for other repositories on scRNA data analysis. Briefly the dataset consisted of eight primary bladder tumor tissues (2 low-grade bladder urothelial tumors, six high-grade bladder urothelial tumors) along with 3 adjacent normal mucosae (PMID: 33033240)
 
-## Outlines:
-
-1.  **Part I: Data input & processing and initialization of CellChat object**: this includes load and preprocess single-cell RNA-seq data,
+```{=html}
+<!--1.  **Part I: Data input & processing and initialization of CellChat object**: this includes load and preprocess single-cell RNA-seq data,
     creating a CellChat object and set ligand-receptor interaction
     database and finally preprocess expression data for cell-cell
     communication analysis
@@ -29,7 +16,7 @@ urothelial tumors, six high-grade bladder urothelial tumors) along with
     communication probabilities, filter out weak interactions, and will extract
     and visualize the inferred cellular communication network
 
-<!--3.  **Part III: Visualization of cell-cell communication network**: 
+3.  **Part III: Visualization of cell-cell communication network**: 
     This includes visualizing communication at various levels (e.g., ligand-receptor
     pairs, signaling pathways) and exploring communication patterns using
     different visualization techniques
@@ -55,14 +42,34 @@ urothelial tumors, six high-grade bladder urothelial tumors) along with
 7.  **Part VII: Identify conserved and context-Specific signaling pathways**: In this step, we will compare the overall information flow of each signaling pathway, try to identify conserved and context-specific pathways, and finally Visualize pathway
     distances in joint manifold
 -->
-## Part I: Data Input & Processing and Initialization of CellChat Object
+```
+## Data Input & Processing, Initialization of CellChat Object and CCC analysis
 
-We have three groups of cells, present in the dataset, normal, non-muscle
-invasive bladder cancer(NMIBC) and muscle-invasive bladder cancer cells.
-Each will be extracted from the harmonized Seurat object (prepared as
-outlined here) and they need to be converted to CellChat object
+We have three groups of cells, present in the dataset, normal, non-muscle invasive bladder cancer(NMIBC) and muscle-invasive bladder cancer cells. Each will be extracted from the harmonized Seurat object (prepared as outlined here) and they need to be converted to CellChat object
 
-```r
+I wrote a function for cell-cell communication analysis (`cccAnalyzer()`) to streamline the analysis steps. This function performs cell-cell communication analysis using the CellChat tool on single-cell RNA-seq data stored in a Seurat object. Here's an overview of the arguments:
+
+`object` (Seurat object): The Seurat object containing single-cell RNA-seq data.
+
+`cellTypeColumn` (character): The name of the column in the Seurat metadata containing cell type information.
+
+`cellTypes` (character vector): A vector specifying the cell types of interest.
+
+`groupColumn` (character): The name of the column in the Seurat metadata used for further grouping.
+
+`group` (character): The specific group within the groupColumn to analyze.
+
+`nWorker` (numeric, default: 12): The number of cores to be used for parallel processing.
+
+`min.cells` (numeric, default: 20): The minimum number of cells in a cell type to be considered for analysis.
+
+`saveAs` (character, default: NULL): A filename to save the CellChat object as an RDS file in WD.
+
+`db.use` (character, default: NULL): The type of interaction to be considered.
+
+The result is a CellChat object that can be used for visualization and further processing.
+
+``` r
 # Part I: Data input & processing and initialization of CellChat object-------------
 
 # Loading libraries---------------
@@ -72,149 +79,154 @@ library(patchwork)
 options(stringsAsFactors = FALSE)
 
 
+# A function to take Seurat obje, make subsets, create cellchat obj and process 
+
+cccAnalyzer <- function(object, # Seurat object
+                        cellTypeColumn, # Column in Seurat metadata containing cell type information
+                        cellTypes, # Cell type(s) of interest
+                        groupColumn, # Column in Seurat metadata for further grouping
+                        group, # Group of samples (not cells)
+                        nWorker = 12, # Number of cores to be used for cellchat analysis
+                        min.cells = 20, # Minimum number of cells in a cell type to be considered for cell-cell communication analysis
+                        saveAs = NULL, # File name to save the resulting CellChat object as an RDS file in WD
+                        db.use = NULL) { # Interaction type to be considered (if NULL, all except non-protein signaling will be considered)
+  
+  # Print progress message
+  cat("Subsetting Seurat object...\n")
+  
+  # Define group column in Seurat object
+  object$groupColumn <- object[[groupColumn]]
+  
+  # Selected cells based on cell types
+  cell_ids <- rownames(object@meta.data)[object@meta.data[[cellTypeColumn]] %in% cellTypes]
+  
+  # Subset based on cell ids and group
+  subObj <- subset(object, cell = cell_ids)
+  subObj <- subset(subObj, subset = groupColumn == group)
+  
+  # Define a sample column in Seurat object (required for CellChat)
+  subObj$samples <- subObj$orig.ident
+  
+  # Convert to CellChat object
+  cellchat <- createCellChat(object = subObj, group.by = cellTypeColumn, assay = "RNA")
+  
+  # Set the ligand-receptor interaction database
+  CellChatDB <- CellChatDB.human 
+  
+  if (is.null(db.use)) {
+    CellChatDB.use <- subsetDB(CellChatDB) # Select all except non-protein signaling
+  } else {
+    # Use a subset of CellChatDB for cell-cell communication analysis
+    CellChatDB.use <- subsetDB(CellChatDB, search = db.use, key = "annotation")
+  }
+  
+  # Preprocess the expression data for cell-cell communication analysis
+  # Set the used database in the CellChat object
+  cellchat@DB <- CellChatDB.use
+  cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
+  future::plan("multisession", workers = nWorker) # Set up parallel processing
+  
+  # Print progress message
+  cat("Identifying overexpressed genes and interactions...\n")
+  
+  # Identify overexpressed genes and interactions
+  cellchat <- identifyOverExpressedGenes(cellchat)
+  print( # to print messages 
+  cellchat <- identifyOverExpressedInteractions(cellchat)
+  )
+  
+  # Compute communication probabilities
+  print( # to print messages from inner function
+  cellchat <- computeCommunProb(cellchat,
+                                population.size = TRUE, # Control abundant cell populations
+                                type = "triMean")
+  )
+  # Filtration
+  cellchat <- filterCommunication(cellchat, min.cells = min.cells)
+  
+  # Compute CCC at pathway-level
+  cellchat <- computeCommunProbPathway(cellchat)
+  
+  # Compute network centrality scores
+  cellchat <- netAnalysis_computeCentrality(cellchat, slot.name = "netP")
+  
+  # Save the resulting CellChat object as an RDS file
+  if (!is.null(saveAs)) {
+    saveRDS(cellchat, paste0(saveAs, ".rds"))
+    cat("CellChat object saved as", paste0(saveAs, ".rds"), "\n")
+  }
+  
+  # Print progress message
+  cat("Cell-cell communication analysis completed.\n")
+  
+  # Return the CellChat object
+  return(cellchat)
+}
+
+
 
 #Set the ligand-receptor interaction database----------------------
 CellChatDB <- CellChatDB.human 
 showDatabaseCategory(CellChatDB)
-
 ```
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%">
 
-```R
-## Show the structure of the database
-dplyr::glimpse(CellChatDB$interaction)
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%"/>
+
+### CCC between cell types in normal, NMIBC and MIBC samples
+
+The cell types are Epithelial cells, T-cells, Endothelial cells, i-CAF, Myeloid cells, Myo-CAF, APCs, B-cells, and Mast cells. Our aim here is to explore the differences in signaling pathways between these groups of cells, considering the sample types (normal, NMIBC, and MIBC).Later, we may follow up on the obtained results from this step by further subtyping cell super clusters, such as epithelial cells into basal, luminal, etc.
+
+``` r
+##Convert seurat to cell chat objec-----
+normal_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
+                                   cellTypeColumn="clusters",
+                                   cellTypes=unique(harmonized_seurat_13032024$clusters),
+                                   groupColumn="Invasiveness",
+                                   group="normal",
+                                   saveAs = "normal_superClusters")
+# Subsetting Seurat object...
+# [1] "Create a CellChat object from a Seurat object"
+# The `meta.data` slot in the Seurat object is used as cell meta information 
+# Set cell identities for the new CellChat object 
+# The cell groups used for CellChat analysis are  Epithelial cells, T-cells, Endothelial cells, i-CAF, Myeloid cells, Myo-CAF, APCs, B-cells, Mast cells 
+# Identifying overexpressed genes and interactions...
+# The number of highly variable ligand-receptor pairs used for signaling inference is 1789 
+# An object of class CellChat created from a single dataset 
+#  23190 genes.
+#  20787 cells. 
+# CellChat analysis of single cell RNA-seq data! 
+# triMean is used for calculating the average gene expression per cell group. 
+# [1] ">>> Run CellChat on sc/snRNA-seq data <<< [2024-03-13 23:42:11.814997]"
+#   |================================================================================================================================| 100%
+# [1] ">>> CellChat inference is done. Parameter values are stored in `object@options$parameter` <<< [2024-03-14 00:16:23.161631]"
+# An object of class CellChat created from a single dataset 
+#  23190 genes.
+#  20787 cells. 
+# CellChat analysis of single cell RNA-seq data! 
+# CellChat object saved as normal_superClusters.rds 
+# Cell-cell communication analysis completed.
 
 
-# use all CellChatDB for cell-cell communication analysis
-CellChatDB.use <- CellChatDB # simply use the default CellChatDB
-
-# OR use a subset of CellChatDB for cell-cell communication analysis
-##CellChatDB.use <- subsetDB(CellChatDB, search = "Secreted Signaling") # use Secreted Signaling
-
-
-
-# Convert seurat to cell chat object -----
-## Normal cells---------------------------
-# Obtaining the cells
- su <- readRDS("G:/Documents/chen2020_scRNA/harmonized_seurat.RDS")
- su <- su[, rownames(su@meta.data)[su@meta.data$Invasiveness == "normal"]]
- 
- # Obtain normalized data as CellChat needs it
- data.input <- GetAssayData(su, assay = "RNA", slot = "data") # normalized data matrix
- # define a new meta obj
- meta <- data.frame(group = su$newClust, row.names = rownames(su@meta.data)) # create a dataframe of the cell labels
- ### Create a CellChat object-----
-
- cellchat <- createCellChat(object = data.input, meta = meta, group.by = "group")
- 
-# set the used database in the object
- cellchat@DB <- CellChatDB.use
- 
- ### Preprocessing the expression data for cell-cell communication analysis----
-
- # subset the expression data of signaling genes for saving computation cost
- cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
- #
- future::plan("multicore", workers =20) # do parallel
- 
- cellchat <- identifyOverExpressedGenes(cellchat)
- cellchat <- identifyOverExpressedInteractions(cellchat)
- # project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
- cellchat <- projectData(cellchat, PPI.human)
- 
- # saving objects for later use
-saveRDS(cellchat, "G:/Documents/SCP_env/renv/normal_cellchat.rds")
-
-## NMIBC cells ---------------------
-
-su <- readRDS("C:/Users/User1/Documents/SCP_env/renv/suCancer.RDS")
-# drop low quality epithelial cells
-su <- su[, rownames(su@meta.data)[su@meta.data$newClust != 'Epithelial cells']]
-su <- su[, rownames(su@meta.data)[su@meta.data$newClust != 'adhesion_signaling_luminal_cell']]
-su <- su[, rownames(su@meta.data)[su@meta.data$Invasiveness == "Noninvasive"]]
-
-# Defining a new clustering based on luminal and basal markers:
-metDat <- su@meta.data
-
-metDat$newClust <- gsub("cancer_associated_", "", metDat$newClust)
-metDat$newClust <- gsub("differentiated_", "", metDat$newClust)
-metDat$newClust <- gsub("early_", "", metDat$newClust)
-metDat$newClust <- gsub("immunomodulatory_", "", metDat$newClust)
-metDat$newClust <- gsub("unique_", "", metDat$newClust)
-# Re-assign
-su@meta.data <- metDat
-
-# converting to CellChat object
-# Obtain normalized data as CellChat needs it
-data.input <- GetAssayData(su, assay = "RNA", slot = "data") # normalized data matrix
-# define a new meta obj
-meta <- data.frame(group = su$newClust, row.names = rownames(su@meta.data)) # create a dataframe of the cell labels
-### Create a CellChat object-----
-cellchat <- createCellChat(object = data.input, meta = meta, group.by = "group")
-# set the used database in the object
-cellchat@DB <- CellChatDB.use
-### Preprocessing the expression data for cell-cell communication analysis----
-
-# subset the expression data of signaling genes for saving computation cost
-cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
-#
-future::plan("multicore", workers =20) # do parallel
-
-cellchat <- identifyOverExpressedGenes(cellchat)
-cellchat <- identifyOverExpressedInteractions(cellchat)
-# project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
-cellchat <- projectData(cellchat, PPI.human)
-# saving objects for later use
-saveRDS(cellchat, "G:/Documents/SCP_env/renv/nmibc_cellChat.rds")
-
-## MIBC cells----------------
-su <- readRDS("C:/Users/User1/Documents/SCP_env/renv/suCancer.RDS")
-# drop low quality epithelial cells
-su <- su[, rownames(su@meta.data)[su@meta.data$newClust != 'Epithelial cells']]
-su <- su[, rownames(su@meta.data)[su@meta.data$newClust != 'adhesion_signaling_luminal_cell']]
-su <- su[, rownames(su@meta.data)[su@meta.data$Invasiveness == "Invasive"]]
-# Defining a new claustering based on luminal and basal markers:
-metDat <- su@meta.data
-metDat$newClust <- gsub("cancer_associated_", "intCancer_", metDat$newClust)
-metDat$newClust <- gsub("differentiated_", "", metDat$newClust)
-metDat$newClust <- gsub("early_", "", metDat$newClust)
-metDat$newClust <- gsub("immunomodulatory_", "intCancer_", metDat$newClust)
-metDat$newClust <- gsub("unique_", "", metDat$newClust)
-# Re-assign
-su@meta.data <- metDat
-# Obtain normalized data as CellChat needs it
-data.input <- GetAssayData(su, assay = "RNA", slot = "data") # normalized data matrix
-meta <- data.frame(group = su$newClust, row.names = rownames(su@meta.data)) # create a dataframe of the cell labels
-
-### Create a CellChat object-----
-
-cellchat <- createCellChat(object = data.input, meta = meta, group.by = "group")
-
-# set the used database in the object
-cellchat@DB <- CellChatDB.use
-
-### Preprocessing the expression data for cell-cell communication analysis----
-
-# subset the expression data of signaling genes for saving computation cost
-cellchat <- subsetData(cellchat) # This step is necessary even if using the whole database
-#
-future::plan("multicore", workers =20) # do parallel
-
-cellchat <- identifyOverExpressedGenes(cellchat)
-cellchat <- identifyOverExpressedInteractions(cellchat)
-# project gene expression data onto PPI (Optional: when running it, USER should set `raw.use = FALSE` in the function `computeCommunProb()` in order to use the projected data)
-cellchat <- projectData(cellchat, PPI.human)
-# saving objects for later use
-saveRDS(cellchat, "G:/Documents/SCP_env/renv/mibc_cellChat.rds")
+nmibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
+                                   cellTypeColumn="clusters",
+                                   cellTypes=unique(harmonized_seurat_13032024$clusters),
+                                   groupColumn="Invasiveness",
+                                   group="Noninvasive",
+                                   saveAs = "nmibc_superClusters")
+                                   
+mibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
+                                   cellTypeColumn="clusters",
+                                   cellTypes=unique(harmonized_seurat_13032024$clusters),
+                                   groupColumn="Invasiveness",
+                                   group="Invasive",
+                                   saveAs = "mibc_superClusters")
 ```
 
 ## Part II: Inference of Cell-Cell Communication Network
 
-Earlier, we saved a CellChat object for each group of cells. Now, we will use these objects to add more information, and subsequently, they will be saved with the same names. As we progress through our analysis, the CellChat objects will be updated iteratively. At the end of this part we  visualize the number of interactions as well as the strength/weights of interactions for normal, NMIBC, and MIBC cells.
-Please note that each of the objects `normal_cellchat.rds`, `nmibc_cellChat.rds` and `mibc_cellChat.rds`, need to be read in R at a time using `cellchat <- readRDS("SAVED_CELLCHAT_OBJ")`. 
+Earlier, we saved a CellChat object for each group of cells. Now, we will use these objects to add more information, and subsequently, they will be saved with the same names. As we progress through our analysis, the CellChat objects will be updated iteratively. At the end of this part we visualize the number of interactions as well as the strength/weights of interactions for normal, NMIBC, and MIBC cells. Please note that each of the objects `normal_cellchat.rds`, `nmibc_cellChat.rds` and `mibc_cellChat.rds`, need to be read in R at a time using `cellchat <- readRDS("SAVED_CELLCHAT_OBJ")`.
 
-
-```R
+``` r
 # Part II: Inference of cell-cell communication network-------------
 
 # Compute the communication probability/strength between any interacting cell groups -----
@@ -278,17 +290,16 @@ for (i in 1:nrow(mat)) {
   mat2[i, ] <- mat[i, ]
   netVisual_circle(mat2, vertex.weight = groupSize, weight.scale = T, edge.weight.max = max(mat), title.name = rownames(mat)[i])
 }
-
 ```
- For normal cells:
- 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/normal_interaction_count_strength.png" width="60%">
 
- For NMIBC cells:
- 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/nmibc_interaction_count_strength.png" width="60%">
+For normal cells:
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/normal_interaction_count_strength.png" width="60%"/>
+
+For NMIBC cells:
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/nmibc_interaction_count_strength.png" width="60%"/>
 
 For MIBC cells:
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/mibc_interaction_count_strength.png" width="60%">
-
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/mibc_interaction_count_strength.png" width="60%"/>
