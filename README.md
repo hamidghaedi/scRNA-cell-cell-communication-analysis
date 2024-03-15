@@ -175,7 +175,7 @@ showDatabaseCategory(CellChatDB.human)
 dev.off()
 ```
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="100%"/>
 
 
 For human CellChatDB v2 contains ~3,300 validated molecular interactions, including ~40% of secrete autocrine/paracrine signaling interactions, ~17% of extracellular matrix (ECM)-receptor interactions, ~13% of cell-cell contact interactions and ~30% non-protein signaling(i.e., metabolic and synaptic signaling).
@@ -328,7 +328,7 @@ dev.off()
 ```
 
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/int_nCount_Strength.png" width="100%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/int_nCount_Strength.png" width="110%"/>
 
 Based on the above figures, the CCC numbers between epithelial cells, fibroblasts, endothelial cells, and T-cells are significant. In terms of CCC weights/strength, autocrine signaling in endothelial cells and crosstalk between i-CAF and T-cells are noteworthy in benign bladder cells. In NMIBC, autocrine signaling in T-cells and endothelial cells, and crosstalk between these two, are noteworthy. In the case of MIBC, the most significant aspect is autocrine signaling in epithelial cells.
 
