@@ -170,7 +170,7 @@ Let see what type of interaction is included in CellChat tool.
 
 ```r
 #Set the ligand-receptor interaction database----------------------
-png(filename = "./images/CellChatDBCategories.png.png", width = 16, height = 8.135, units = "in", res = 300)
+png(filename = "./images/CellChatDBCategories.png", width = 16, height = 8.135, units = "in", res = 300)
 showDatabaseCategory(CellChatDB.human)
 dev.off()
 ```
