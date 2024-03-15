@@ -79,17 +79,21 @@ library(patchwork)
 options(stringsAsFactors = FALSE)
 
 
-# A function to take Seurat obje, make subsets, create cellchat obj and process 
-
-cccAnalyzer <- function(object, # Seurat object
-                        cellTypeColumn, # Column in Seurat metadata containing cell type information
-                        cellTypes, # Cell type(s) of interest
-                        groupColumn, # Column in Seurat metadata for further grouping
-                        group, # Group of samples (not cells)
-                        nWorker = 12, # Number of cores to be used for cellchat analysis
-                        min.cells = 20, # Minimum number of cells in a cell type to be considered for cell-cell communication analysis
-                        saveAs = NULL, # File name to save the resulting CellChat object as an RDS file in WD
-                        db.use = NULL) { # Interaction type to be considered (if NULL, all except non-protein signaling will be considered)
+#' A function to perform cell-cell communication analysis using CellChat
+#' 
+#' @param object A Seurat object containing single-cell RNA-seq data
+#' @param cellTypeColumn Column in Seurat metadata containing cell type information
+#' @param cellTypes Cell type(s) of interest for analysis
+#' @param groupColumn Column in Seurat metadata for further grouping
+#' @param group Group of samples (not cells)
+#' @param nWorker Number of cores to be used for parallel processing
+#' @param min.cells Minimum number of cells in a cell type to be considered for analysis
+#' @param saveAs File name to save the resulting CellChat object as an RDS file in the working directory
+#' @param db.use Interaction type to be considered (if NULL, all except non-protein signaling will be considered)
+#' 
+#' @return A CellChat object containing the results of cell-cell communication analysis
+#'
+cccAnalyzer <- function(object, cellTypeColumn, cellTypes, groupColumn, group, nWorker = 12, min.cells = 20, saveAs = NULL, db.use = NULL) {
   
   # Print progress message
   cat("Subsetting Seurat object...\n")
@@ -132,14 +136,14 @@ cccAnalyzer <- function(object, # Seurat object
   # Identify overexpressed genes and interactions
   cellchat <- identifyOverExpressedGenes(cellchat)
   print( # to print messages 
-  cellchat <- identifyOverExpressedInteractions(cellchat)
+    cellchat <- identifyOverExpressedInteractions(cellchat)
   )
   
   # Compute communication probabilities
   print( # to print messages from inner function
-  cellchat <- computeCommunProb(cellchat,
-                                population.size = TRUE, # Control abundant cell populations
-                                type = "triMean")
+    cellchat <- computeCommunProb(cellchat,
+                                  population.size = TRUE, # Control abundant cell populations
+                                  type = "triMean")
   )
   # Filtration
   cellchat <- filterCommunication(cellchat, min.cells = min.cells)
@@ -162,6 +166,66 @@ cccAnalyzer <- function(object, # Seurat object
   # Return the CellChat object
   return(cellchat)
 }
+
+
+
+# Function to extract the top pathways based on their strength in the network
+# 
+# @param object A CellChat object containing signaling network data with centrality measures computed
+# @param n The number of top pathways to extract
+# @param pattern A character vector specifying the type of signaling pattern to consider: 
+#                "outgoing" for outgoing signaling pathways,
+#                "incoming" for incoming signaling pathways, 
+#                or "all" for both outgoing and incoming pathways.
+#                Defaults to "outgoing".
+# @return A vector containing the names of the top pathways
+# 
+topPathways <- function(object, n = 20, pattern = c("outgoing", "incoming", "all")) {
+  # Check if the object is a CellChat object
+  if (!inherits(object, "CellChat")) {
+    stop("The object must be a CellChat object.")
+  }
+  
+  # Extract centrality measures from the CellChat object
+  centr <- slot(object, "netP")$centr
+  
+  # Initialize matrices to store outgoing and incoming signaling strengths
+  outgoing <- matrix(0, nrow = nlevels(object@idents), ncol = length(centr))
+  incoming <- matrix(0, nrow = nlevels(object@idents), ncol = length(centr))
+  dimnames(outgoing) <- list(levels(object@idents), names(centr))
+  dimnames(incoming) <- dimnames(outgoing)
+  
+  # Populate the matrices with outgoing and incoming signaling strengths
+  for (i in 1:length(centr)) {
+    outgoing[, i] <- centr[[i]]$outdeg
+    incoming[, i] <- centr[[i]]$indeg
+  }
+  
+  # Determine the matrix based on the specified pattern
+  if (pattern == "outgoing") {
+    mat <- t(outgoing)
+    legend.name <- "Outgoing"
+  } else if (pattern == "incoming") {
+    mat <- t(incoming)
+    legend.name <- "Incoming"
+  } else if (pattern == "all") {
+    mat <- t(outgoing + incoming)
+    legend.name <- "Overall"
+  } else {
+    stop("Invalid pattern. Choose from 'outgoing', 'incoming', or 'all'.")
+  }
+  
+  # Compute the total signaling strength for each pathway
+  pSum <- rowSums(mat)
+  
+  # Return the top 'n' pathways based on their total signaling strength
+  if (n <= nrow(mat)) {
+    return(names(head(sort(pSum, decreasing = TRUE), n)))
+  } else {
+    return(names(sort(pSum, decreasing = TRUE)))
+  }
+}
+
 ```
 
 ### CellChat interaction database
@@ -460,4 +524,117 @@ common <- intersect(intersect(nmibc_superCluster@netP$pathways, mibc_superCluste
 # [37] "GAS"      "EPHB"     "PECAM2"   "MPZ"      "CDH"      "SEMA4"    "ADGRA"    "GRN"      "SEMA6"    "PDGF"     "SELL"     "NRXN"    
 # [49] "CLDN"     "TWEAK"    "BMP"      "CADM"     "OCLN"    
 ```
+
+## Systems analysis of cell-cell communication network
+
+CellChat finds the most important cells in communication networks by computing several network centrality measures for each cell group. It looks at different measures to figure out which cells send, receive, mediate, or influence signals the most.
+
+These measures include:
+
+*Out-Degree* : How much a cell sends signals.
+
+*In-Degree* : How much a cell receives signals.
+
+*Flow Betweenness* : How much a cell helps signals flow between other cells.
+
+*Information Centrality* : How important a cell is for spreading information.
+
+These measures work best in networks where the strength of connections between cells is known (weighteddirected network). In these networks, Out-Degree helps find major senders, In-Degree finds major receivers, Flow Betweenness identifies mediators, and Information Centrality shows influential cells.
+
+
+We can visualize dominant sender and receiver per cell type in different sample group using the following 
+
+```R
+# Visualization using scatter plot
+# Signaling role analysis on the aggregated cell-cell communication network from all signaling pathways
+gg1 <- netAnalysis_signalingRole_scatter(normal_superCluster) + ggtitle("Benign")
+gg2 <- netAnalysis_signalingRole_scatter(nmibc_superCluster)+ ggtitle("NMIBC")
+gg3 <- netAnalysis_signalingRole_scatter(mibc_superCluster)+ ggtitle("MIBC")
+
+png(filename = "./images/dominant_sender_receiver_cell_groups.png", width = 14, height = 5.5, units = "in", res = 300)
+gg1+gg2+gg3
+dev.off()
+```
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/dominant_sender_receiver_cell_groups.png" width="100%"/>
+
+As it can be seen in the above figures, there is a sort of balanced CCC in benign tissue where endothelial cells and T-cells emerge as receivers (high value in y-axis), while endothelial cells and iCAF-progenitors show high value along the x-axis, indicating that they are dominant senders.
+
+In the case of NMIBC, T-cells appear to be dominant receivers and endothelial cells appear to be dominant senders. In NMIBC, epithelial cells are both dominant senders and receivers (autocrine activity). These patterns, especially the epithelial cell subtype in MIBC, warrant further investigation.
+
+Now let identify signals contributing the most to outgoing or incoming signaling of certain cell groups.We can  answer the question on which signals contributing most to outgoing or incoming signaling of certain cell groups by looking at the below heatmaps
+
+```R
+##Identify signals contributing the most to outgoing or incoming signaling of certain cell groups-----
+
+# select top20 pathways, when pattern is all 
+
+# Define the list of sample groups
+sample_groups <- list(normal_superCluster, nmibc_superCluster, mibc_superCluster)
+names(sample_groups) <- c("Benign", "NMIBC", "MIBC")
+
+# Loop through each sample group
+for (i in 1:length(sample_groups)) {
+  # Get top pathways for the current sample group
+  top_path <- topPathways(sample_groups[[i]], n = 20, pattern = "all")
+  
+  # Generate heatmap plots for outgoing, incoming, and all patterns
+  ht1 <- netAnalysis_signalingRole_heatmap(sample_groups[[i]], signaling = top_path, width = 5, height = 15, pattern = "outgoing", title = names(sample_groups)[i])
+  ht2 <- netAnalysis_signalingRole_heatmap(sample_groups[[i]], signaling = top_path, width = 5, height = 15, pattern = "incoming", title = names(sample_groups)[i])
+  ht3 <- netAnalysis_signalingRole_heatmap(sample_groups[[i]], signaling = top_path, width = 5, height = 15, pattern = "all", title = names(sample_groups)[i])
+  # Plot the heatmaps
+  png(filename = paste0("./images/", names(sample_groups)[i], "_signalingRole_heatmap.png"), width = 9, height = 9, units = "in", res = 300)
+  ht1 + ht2 + ht3
+  dev.off()
+}
+
+```
+
+**Dominant signaling in benign cells**
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Benign_signalingRole_heatmap.png" width="100%"/>
+
+**Dominant signaling in NMIBC cells**
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/NMIBC_signalingRole_heatmap.png" width="100%"/>
+
+
+**Dominant signaling in MIBC cells**
+
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/MIBC_signalingRole_heatmap.png" width="100%"/>
+
+
+Manifold and classification learning analysis of signaling networks
+
+CellChat employs manifold and classification learning analyses of signaling networks to assess the similarity between significant signaling pathways and group them accordingly. Manifold learning techniques help in understanding the intrinsic structure or geometry of high-dimensional data like signaling networks. These methods aim to represent the data in a lower-dimensional space while retaining essential properties (PCA, tSNE, UMAP).
+
+Functional similarity analysis in CellChat identifies pathways or ligand-receptor pairs that serve similar roles by assessing their degree of similarity. This analysis requires consistency in cell population composition between datasets. On the other hand, structural similarity analysis in CellChat compares the structure of signaling networks regardless of the similarity of senders and receivers. This allows for a broader understanding of network organization beyond specific cell interactions.
+
+```R
+## Manifold and classification learning analysis of signaling networks----
+###Identify signaling groups based on their functional similarity
+
+
+# Initialize an empty plot
+plotL <- list()
+# Loop through each sample group
+for (i in seq_along(sample_groups)) {
+  cellchat <- sample_groups[[i]]
+  nm <- names(sample_groups)[i]
+  # Perform computations
+  cellchat <- computeNetSimilarity(cellchat, type = "functional")
+  cellchat <- netEmbedding(cellchat, type = "functional")
+  cellchat <- netClustering(cellchat, type = "functional")
+  # Visualization in 2D-space
+  gg <- netVisual_embedding(cellchat, type = "functional", label.size = 3.5) + ggtitle(nm)
+  # Add each subplot to the combined plot
+  plotL[[i]] <- gg
+}
+
+png(filename ="./images/functional_similarities.png", width = 15, height = 6, units = "in", res = 300)
+ggarrange(plotL[[1]], plotL[[2]], plotL[[3]],
+          ncol = 3, nrow = 1)
+dev.off()
+```
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/functional_similarities.png" width="100%"/>
+
 
