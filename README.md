@@ -200,6 +200,11 @@ tmpMet$clusters <- ifelse(tmpMet$clusters == "i-CAF" & tmpMet$Invasiveness == "n
                                  as.character(tmpMet$clusters)))
 # convert back to factor
 tmpMet$clusters <- as.factor(tmpMet$clusters)
+# set the factor levels comparable to other objects
+levs <- c("Epithelial cells","T-cells", "Endothelial cells", "iCAF-progens", "Myeloid cells","myoCAF-progens","APCs","B-cells","Mast cells")
+# Relevel the factor variable to match desired levels
+tmpMet$clusters <- factor(tmpMet$clusters, levels = levs)
+
 # put it back
 nSeu@meta.data <- tmpMet
 Idents(nSeu) <- nSeu$clusters
@@ -217,7 +222,7 @@ normal_superCluster <- cccAnalyzer(object = nSeu,
 # [1] "Create a CellChat object from a Seurat object"
 # The `meta.data` slot in the Seurat object is used as cell meta information 
 # Set cell identities for the new CellChat object 
-# The cell groups used for CellChat analysis are  APCs, B-cells, Endothelial cells, Epithelial cells, iCAF-progens, Mast cells, Myeloid cells, myoCAF-progens, T-cells 
+# The cell groups used for CellChat analysis are  Epithelial cells, T-cells, Endothelial cells, iCAF-progens, Myeloid cells, myoCAF-progens, APCs, B-cells, Mast cells 
 # Identifying overexpressed genes and interactions...
 # The number of highly variable ligand-receptor pairs used for signaling inference is 1789 
 # An object of class CellChat created from a single dataset 
@@ -225,15 +230,15 @@ normal_superCluster <- cccAnalyzer(object = nSeu,
 #  20787 cells. 
 # CellChat analysis of single cell RNA-seq data! 
 # triMean is used for calculating the average gene expression per cell group. 
-# [1] ">>> Run CellChat on sc/snRNA-seq data <<< [2024-03-14 16:01:12.033785]"
-#   |================================================================================================================================| 100%
-# [1] ">>> CellChat inference is done. Parameter values are stored in `object@options$parameter` <<< [2024-03-14 16:34:43.947512]"
+# [1] ">>> Run CellChat on sc/snRNA-seq data <<< [2024-03-15 10:05:26.91681]"
+#   |=============================================================================================================| 100%
+# [1] ">>> CellChat inference is done. Parameter values are stored in `object@options$parameter` <<< [2024-03-15 10:34:01.148103]"
 # An object of class CellChat created from a single dataset 
 #  23190 genes.
 #  20787 cells. 
 # CellChat analysis of single cell RNA-seq data! 
 # CellChat object saved as normal_superClusters.rds 
-# Cell-cell communication analysis completed.  
+# Cell-cell communication analysis completed.
 
 # NMIBC
 nmibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
@@ -330,13 +335,12 @@ Based on the above figures, the CCC numbers between epithelial cells, fibroblast
 Lets take a look at signaling sent out from these cells in more details:
 
 ```R
+
 # Visualize outgoing signals from each cell type: COUNTS
 normMat_count <- normal_superCluster@net$count
 nmibcMat_count <- nmibc_superCluster@net$count
 mibcMat_count <- mibc_superCluster@net$count
 #
-# reorder normal matrix
-normMat_count <- normMat_count[c(4,9,3,5,7,8,1,2,6), c(c(4,9,3,5,7,8,1,2,6))]
 
 # select epi, t-cells, endothelials and fibroblasts
 normMat_count <- normMat_count[c(1,2,3,4,6), c(1,2,3,4,6)]
@@ -350,9 +354,6 @@ normMat_weight <- normal_superCluster@net$weight
 nmibcMat_weight <- nmibc_superCluster@net$weight
 mibcMat_weight <- mibc_superCluster@net$weight
 #
-# reorder normal matrix
-normMat_weight <- normMat_weight[c(4,9,3,5,7,8,1,2,6), c(c(4,9,3,5,7,8,1,2,6))]
-
 # select epi, t-cells, endothelials and fibroblasts
 normMat_weight <- normMat_weight[c(1,2,3,4,6), c(1,2,3,4,6)]
 nmibcMat_weight <- nmibcMat_weight[c(1,2,3,4,6), c(1,2,3,4,6)]
@@ -404,6 +405,7 @@ for (i in 1:nrow(normMat_count)) {
   
   dev.off()
 }
+
 ```
 
 **Epithelial cells**
@@ -427,5 +429,35 @@ for (i in 1:nrow(normMat_count)) {
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/i-CAF_sent_out_sigs.png" width="100%"/>
 
 
-To identify all the signaling pathways showing significant communications in different sample group, we can access the pathway list for each group, and then visualize those that are more interesting 
+To identify all the signaling pathways showing significant communications in different sample group, we can access the pathway list for each group
+
+```R
+## Signaling pathways showing significant communications--------
+
+# Find elements present in mibc but not in nmibc and normal
+mibc_only <- setdiff(mibc_superCluster@netP$pathways, c(nmibc_superCluster@netP$pathways, normal_superCluster@netP$pathways))
+
+# Find elements present in nmibc or mibc but not in normal
+nmibc_mibc_only <- setdiff(union(nmibc_superCluster@netP$pathways, mibc_superCluster@netP$pathways), normal_superCluster@netP$pathways)
+
+# Find elements present in nmibc only
+nmibc_only <- setdiff(nmibc_superCluster@netP$pathways, c(mibc_superCluster@netP$pathways, normal_superCluster@netP$pathways))
+
+# Find elements present in all three groups
+common <- intersect(intersect(nmibc_superCluster@netP$pathways, mibc_superCluster@netP$pathways), normal_superCluster@netP$pathways)
+
+# 
+# > mibc_only
+# character(0)
+# > nmibc_mibc_only
+# [1] "IFN-II"    "ApoE"      "ncWNT"     "CD39"      "CSPG4"     "APRIL"     "LAIR1"     "HGF"       "SLITRK"    "DESMOSOME"
+# > nmibc_only
+# [1] "IFN-II"    "ApoE"      "ncWNT"     "CD39"      "APRIL"     "LAIR1"     "HGF"       "SLITRK"    "DESMOSOME"
+# > common
+# [1] "COLLAGEN" "MIF"      "LAMININ"  "APP"      "CD99"     "CypA"     "FN1"      "MK"       "PTPRM"    "MHC-II"   "ADGRE"    "VISFATIN"
+# [13] "GALECTIN" "PARs"     "PECAM1"   "VEGF"     "JAM"      "IGFBP"    "SEMA3"    "ANGPT"    "CALCR"    "ESAM"     "GAP"      "NOTCH"   
+# [25] "NECTIN"   "ADGRG"    "CD46"     "ANGPTL"   "GDF"      "TENASCIN" "EPHA"     "EGF"      "CDH5"     "VCAM"     "CDH1"     "PLAU"    
+# [37] "GAS"      "EPHB"     "PECAM2"   "MPZ"      "CDH"      "SEMA4"    "ADGRA"    "GRN"      "SEMA6"    "PDGF"     "SELL"     "NRXN"    
+# [49] "CLDN"     "TWEAK"    "BMP"      "CADM"     "OCLN"    
+```
 
