@@ -177,7 +177,11 @@ dev.off()
 
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/CellChatDBCategories.png" width="90%"/>
 
+<<<<<<< HEAD
 For human CellChatDB v2 contains ~3,300 validated molecular interactions, including ~40% of secrete autocrine/paracrine signaling interactions, ~17% of extracellular matrix (ECM)-receptor interactions, ~13% of cell-cell contact interactions and ~30% non-protein signaling(i.e., metabolic and synaptic signaling).
+=======
+CellChatDB v2 contains ~3,300 validated molecular interactions, including ~40% of secrete autocrine/paracrine signaling interactions, ~17% of extracellular matrix (ECM)-receptor interactions, ~13% of cell-cell contact interactions and ~30% non-protein signaling(i.e., metabolic and synaptic signaling).
+
 
 
 ### CCC between cell types in normal, NMIBC and MIBC samples
@@ -187,20 +191,20 @@ The cell types are Epithelial cells, T-cells, Endothelial cells, i-CAF, Myeloid 
 ``` r
 ##Convert seurat to cell chat objec-----
 # # for normal samples we need to convert iCAF and myoCAF to fibroblast/ or progenitors 
-# nSeu <- subset(harmonized_seurat_13032024, subset=Invasiveness=="normal")
-# 
-# tmpMet <- nSeu@meta.data
-# tmpMet$clusters <- as.character(tmpMet$clusters)
-# # convert labeles
-# tmpMet$clusters <- ifelse(tmpMet$clusters == "i-CAF" & tmpMet$Invasiveness == "normal", "iCAF-progens",
-#                           ifelse(tmpMet$clusters == "Myo-CAF" & tmpMet$Invasiveness == "normal", "myoCAF-progens",
-#                                  as.character(tmpMet$clusters)))
-# # convert back to factor
-# tmpMet$clusters <- as.factor(tmpMet$clusters)
-# # put it back
-# nSeu@meta.data <- tmpMet
-# Idents(nSeu) <- nSeu$clusters
-# rm(tmpMet)
+nSeu <- subset(harmonized_seurat_13032024, subset=Invasiveness=="normal")
+
+tmpMet <- nSeu@meta.data
+tmpMet$clusters <- as.character(tmpMet$clusters)
+# convert labeles
+tmpMet$clusters <- ifelse(tmpMet$clusters == "i-CAF" & tmpMet$Invasiveness == "normal", "iCAF-progens",
+                          ifelse(tmpMet$clusters == "Myo-CAF" & tmpMet$Invasiveness == "normal", "myoCAF-progens",
+                                 as.character(tmpMet$clusters)))
+# convert back to factor
+tmpMet$clusters <- as.factor(tmpMet$clusters)
+# put it back
+nSeu@meta.data <- tmpMet
+Idents(nSeu) <- nSeu$clusters
+rm(tmpMet)
 
 
 normal_superCluster <- cccAnalyzer(object = nSeu,
@@ -210,7 +214,29 @@ normal_superCluster <- cccAnalyzer(object = nSeu,
                                    group="normal",
                                    saveAs = "normal_superClusters")
                                    
+# Subsetting Seurat object...
+# [1] "Create a CellChat object from a Seurat object"
+# The `meta.data` slot in the Seurat object is used as cell meta information 
+# Set cell identities for the new CellChat object 
+# The cell groups used for CellChat analysis are  APCs, B-cells, Endothelial cells, Epithelial cells, iCAF-progens, Mast cells, Myeloid cells, myoCAF-progens, T-cells 
+# Identifying overexpressed genes and interactions...
+# The number of highly variable ligand-receptor pairs used for signaling inference is 1789 
+# An object of class CellChat created from a single dataset 
+#  23190 genes.
+#  20787 cells. 
+# CellChat analysis of single cell RNA-seq data! 
+# triMean is used for calculating the average gene expression per cell group. 
+# [1] ">>> Run CellChat on sc/snRNA-seq data <<< [2024-03-14 16:01:12.033785]"
+#   |================================================================================================================================| 100%
+# [1] ">>> CellChat inference is done. Parameter values are stored in `object@options$parameter` <<< [2024-03-14 16:34:43.947512]"
+# An object of class CellChat created from a single dataset 
+#  23190 genes.
+#  20787 cells. 
+# CellChat analysis of single cell RNA-seq data! 
+# CellChat object saved as normal_superClusters.rds 
+# Cell-cell communication analysis completed.  
 
+# NMIBC
 nmibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
                                    cellTypeColumn="clusters",
                                    cellTypes=unique(harmonized_seurat_13032024$clusters),
@@ -240,6 +266,7 @@ nmibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
 # CellChat object saved as normal_superClusters.rds 
 # Cell-cell communication analysis completed.
                                    
+# MIBC
 mibc_superCluster <- cccAnalyzer(object = harmonized_seurat_13032024,
                                    cellTypeColumn="clusters",
                                    cellTypes=unique(harmonized_seurat_13032024$clusters),
@@ -297,7 +324,7 @@ dev.off()
 ```
 
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/int_nCount_Strength.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/int_nCount_Strength.png" width="100%"/>
 
 Based on the above figures, the CCC numbers between epithelial cells, fibroblasts, endothelial cells, and T-cells are significant. In terms of CCC weights/strength, autocrine signaling in endothelial cells and crosstalk between i-CAF and T-cells are noteworthy in benign bladder cells. In NMIBC, autocrine signaling in T-cells and endothelial cells, and crosstalk between these two, are noteworthy. In the case of MIBC, the most significant aspect is autocrine signaling in epithelial cells.
 
@@ -382,21 +409,21 @@ for (i in 1:nrow(normMat_count)) {
 
 **Epithelial cells**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Epithelialcells_sent_out_sigs.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Epithelialcells_sent_out_sigs.png" width="100%"/>
 
 **T-cells**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/T-cells_sent_out_sigs.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/T-cells_sent_out_sigs.png" width="100%"/>
 
 **Endothelial cells**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Endothelialcells_sent_out_sigs.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Endothelialcells_sent_out_sigs.png" width="100%"/>
 
 **Myo-CAF**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Myo-CAF_sent_out_sigs.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/Myo-CAF_sent_out_sigs.png" width="100%"/>
 
 **i-CAF**
 
-<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/i-CAF_sent_out_sigs.png" width="60%"/>
+<img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/i-CAF_sent_out_sigs.png" width="100%"/>
 
