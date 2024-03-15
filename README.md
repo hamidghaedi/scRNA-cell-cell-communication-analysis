@@ -45,7 +45,7 @@ In this repo, I'll be using bladder cancer scRNA datasets that I have used for o
 
 ## Data Input & Processing, Initialization of CellChat Object and CCC analysis
 
-We have three groups of cells present in the dataset: normal, non-muscle invasive bladder cancer (NMIBC), and muscle-invasive (MIBC) bladder cancer cells. Each group will be extracted from the harmonized Seurat object (prepared as outlined here) and converted into a CellChat object. To prepare the Seurat object for CCC analysis, the cell types needed to be revised, and additional columns have been added to the metadata(see `./scripts/scRNA_dataset_processing_for_CCC.R` for more details)
+We have three sample groups present in the dataset: normal, non-muscle invasive bladder cancer (NMIBC), and muscle-invasive (MIBC) bladder cancer cells. Each group will be extracted from the harmonized Seurat object (prepared as outlined here) and converted into a CellChat object. To prepare the Seurat object for CCC analysis, the cell types needed to be revised, and additional columns have been added to the metadata(see `./scripts/scRNA_dataset_processing_for_CCC.R` for more details)
 
 I wrote a function for cell-cell communication analysis (`cccAnalyzer()`) to streamline the analysis steps. This function performs cell-cell communication analysis using the CellChat tool on single-cell RNA-seq data stored in a Seurat object. Here's an overview of the arguments:
 
@@ -425,4 +425,7 @@ for (i in 1:nrow(normMat_count)) {
 **i-CAF**
 
 <img src="https://github.com/hamidghaedi/scRNA-cell-cell-communication-analysis/blob/main/images/i-CAF_sent_out_sigs.png" width="100%"/>
+
+
+To identify all the signaling pathways showing significant communications in different sample group, we can access the pathway list for each group, and then visualize those that are more interesting 
 
